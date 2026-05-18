@@ -1,0 +1,25 @@
+{
+  "name": "claude-context-pill",
+  "version": "1.0.0",
+  "description": "Estimated token-usage tracker pinned to the claude.ai composer.",
+  "private": true,
+  "homepage": "https://github.com/iam25th1/claude-context-pill",
+  "bugs": "https://github.com/iam25th1/claude-context-pill/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iam25th1/claude-context-pill.git"
+  },
+  "author": "25TH (@25thprmr)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "lint": "web-ext lint --source-dir=. --self-hosted",
+    "package": "web-ext build --source-dir=. --artifacts-dir=./dist --overwrite-dest --filename=claude-context-pill-{version}.zip --ignore-files=dist node_modules .github preview .git .gitignore CHANGELOG.md CONTRIBUTING.md SECURITY.md PRIVACY.md package.json package-lock.json README.md",
+    "verify": "node -e \"const m=require('./manifest.json'); const p=require('./package.json'); if(m.version!==p.version){console.error('manifest/package version mismatch:',m.version,'vs',p.version); process.exit(1)} console.log('versions match:',m.version)\""
+  },
+  "devDependencies": {
+    "web-ext": "10.1.0"
+  }
+}

@@ -1,0 +1,74 @@
+name: Bug report
+description: Report something that does not work
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        thanks for filing a bug report. please include enough detail that we can reproduce locally.
+
+  - type: input
+    id: version
+    attributes:
+      label: extension version
+      description: see chrome://extensions, or `manifest.json` if running from source
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: chrome-version
+    attributes:
+      label: chrome / chromium version
+      placeholder: "Chrome 135.0.7049.41"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: operating system
+      placeholder: "Windows 11 / macOS 14 / Ubuntu 24"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: what happened
+      description: describe the bug
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: steps to reproduce
+      description: list the steps
+      placeholder: |
+        1. open claude.ai
+        2. send a message
+        3. observe the pill
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: what you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: browser console output
+      description: open devtools, copy any errors. redact anything sensitive first.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: anything else
+      description: screenshots, related issues, hunches

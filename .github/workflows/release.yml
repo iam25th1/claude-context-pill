@@ -1,0 +1,54 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: build and attach zip
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: verify version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST_VER=$(node -p "require('./manifest.json').version")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "tag: $TAG | manifest: $MANIFEST_VER | package: $PKG_VER"
+          if [ "$TAG" != "$MANIFEST_VER" ] || [ "$TAG" != "$PKG_VER" ]; then
+            echo "::error::version mismatch between git tag, manifest.json, and package.json"
+            exit 1
+          fi
+
+      - name: install ci deps (no scripts)
+        run: npm ci --ignore-scripts
+
+      - name: lint extension
+        run: npx web-ext lint --source-dir=. --self-hosted
+
+      - name: package zip
+        run: npm run package
+
+      - name: create github release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/claude-context-pill-*.zip
+          generate_release_notes: true
+          body: |
+            chrome-loadable zip attached below. unpack and load via
+            `chrome://extensions` -> developer mode -> load unpacked.
+
+            see [CHANGELOG.md](CHANGELOG.md) for details.

@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an idea
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: what problem are you trying to solve
+      description: describe the use case before describing the solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: what you would like to see
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: alternatives you have considered
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: scope confirmation
+      options:
+        - label: this fits an extension that runs only on claude.ai
+          required: true
+        - label: this does not require network calls to a third party
+          required: false

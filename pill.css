@@ -1,0 +1,107 @@
+/* Claude Context Pill - styles scoped via #ccp- prefix.
+   Pinned to bottom-right of viewport above claude.ai composer.
+   Uses CSS vars for theme; respects prefers-reduced-motion. */
+
+#ccp-pill {
+  position: fixed;
+  right: 18px;
+  bottom: 92px;
+  z-index: 2147483600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px 6px 9px;
+  border-radius: 999px;
+  background: rgba(14, 16, 22, 0.78);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: rgba(232, 236, 244, 0.94);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 160ms ease, opacity 160ms ease, border-color 200ms ease;
+  pointer-events: auto;
+}
+
+#ccp-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+#ccp-pill .ccp-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6ee7b7;
+  box-shadow: 0 0 0 0 rgba(110, 231, 183, 0.55);
+  animation: ccp-pulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+#ccp-pill .ccp-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#ccp-pill .ccp-pct {
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  opacity: 0.55;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+#ccp-pill[data-status="ok"] .ccp-dot {
+  background: #6ee7b7;
+  box-shadow: 0 0 8px rgba(110, 231, 183, 0.35);
+}
+
+#ccp-pill[data-status="warn"] .ccp-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
+}
+
+#ccp-pill[data-status="warn"] {
+  border-color: rgba(251, 191, 36, 0.22);
+}
+
+#ccp-pill[data-status="danger"] .ccp-dot {
+  background: #f87171;
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.55);
+  animation: ccp-pulse-danger 1.2s ease-in-out infinite;
+}
+
+#ccp-pill[data-status="danger"] {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: rgba(254, 226, 226, 0.96);
+}
+
+@keyframes ccp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(110, 231, 183, 0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(110, 231, 183, 0); }
+}
+
+@keyframes ccp-pulse-danger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(248, 113, 113, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ccp-pill .ccp-dot { animation: none !important; }
+  #ccp-pill { transition: none; }
+}
+
+/* Hide on very narrow viewports to avoid overlapping mobile composers */
+@media (max-width: 480px) {
+  #ccp-pill { right: 10px; bottom: 78px; font-size: 10.5px; padding: 5px 9px; }
+}

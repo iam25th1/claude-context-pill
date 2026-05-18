@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: install web-ext (no scripts)
+        run: npm install --global --ignore-scripts web-ext@10.1.0
+
+      - name: lint manifest and source
+        run: web-ext lint --source-dir=. --self-hosted
+
+      - name: verify required files exist
+        run: |
+          for f in manifest.json content.js pill.css popup.html popup.js popup.css README.md LICENSE; do
+            if [ ! -f "$f" ]; then
+              echo "missing required file: $f"
+              exit 1
+            fi
+          done
+
+      - name: verify no broad permissions
+        run: |
+          if grep -E '"<all_urls>"|"tabs"|"webRequest"|"cookies"' manifest.json; then
+            echo "manifest contains broad permissions, please justify in PR"
+            exit 1
+          fi
+
+      - name: verify no eval or dynamic code execution
+        run: |
+          if grep -rE "\beval\(|new Function\(" --include="*.js" --exclude-dir=node_modules .; then
+            echo "potential unsafe code found"
+            exit 1
+          fi

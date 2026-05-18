@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Context Pill",
+  "version": "1.0.0",
+  "description": "Estimated token-usage tracker pinned to the claude.ai composer. Directional estimate, runs entirely client-side.",
+  "author": "25TH (@25thprmr)",
+  "permissions": ["storage"],
+  "host_permissions": ["https://claude.ai/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["content.js"],
+      "css": ["pill.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Context Pill settings"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

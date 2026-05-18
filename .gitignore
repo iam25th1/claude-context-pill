@@ -1,0 +1,35 @@
+# build artifacts
+*.zip
+!preview/*.zip
+dist/
+build/
+
+# os junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# env
+.env
+.env.local
+.env.*.local
+
+# node (lockfiles intentionally NOT ignored)
+node_modules/
+
+# do NOT ignore:
+# !package-lock.json
+# !yarn.lock
+# !pnpm-lock.yaml

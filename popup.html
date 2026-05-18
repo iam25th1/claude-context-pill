@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Context Pill</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="hdr">
+    <div class="logo">
+      <span class="dot"></span>
+      <span class="title">CONTEXT PILL</span>
+    </div>
+    <span class="ver">v1.0.0</span>
+  </header>
+
+  <section class="card">
+    <div class="row">
+      <label for="enabled" class="lbl">enabled</label>
+      <label class="switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row col">
+      <label for="overhead" class="lbl">hidden overhead offset</label>
+      <div class="overhead-grp">
+        <input
+          type="number"
+          id="overhead"
+          min="0"
+          max="200000"
+          step="1000"
+          inputmode="numeric"
+        />
+        <span class="unit">tokens</span>
+      </div>
+      <p class="hint">
+        added to your visible message tokens. estimate of the system prompt,
+        skills metadata, and user memories that the pill cannot see.
+        default 40,000.
+      </p>
+    </div>
+
+    <div class="row btns">
+      <button id="reset" type="button" class="btn-ghost">reset</button>
+      <button id="save" type="button" class="btn-primary">save</button>
+    </div>
+  </section>
+
+  <footer class="ftr">
+    <p>
+      directional estimate, not exact.
+      <br />
+      char-based heuristic, no data leaves your browser.
+    </p>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
