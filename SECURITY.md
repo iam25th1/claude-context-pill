@@ -5,17 +5,19 @@ this extension runs on `claude.ai`, a surface that handles potentially sensitive
 ## what this extension does
 
 - reads visible message text from the claude.ai DOM
-- runs that text through a local char-count heuristic
+- runs that text through a vendored js-tiktoken (cl100k_base) tokenizer locally
 - displays a token estimate in a fixed-position pill
-- persists three settings to `chrome.storage.local`: `enabled`, `overhead`, `showRaw`
+- persists settings to `chrome.storage.local`: `enabled`, `overhead` settings, calibration state
+- **if calibration is opt-in enabled**: sends visible conversation text to `https://api.anthropic.com/v1/messages/count_tokens` using the api key you supplied, to compute a correction factor. no other endpoints are contacted.
 
 ## what this extension does NOT do
 
-- send any data over the network
-- store, log, or transmit conversation content
-- request permissions beyond `storage` and the `claude.ai` host
+- send data over the network to any service other than `api.anthropic.com` (and only when calibration is on)
+- store, log, or transmit conversation content beyond the calibration call described above
+- request permissions beyond `storage`, the `claude.ai` host, and the optional `api.anthropic.com` host (requested only when calibration is enabled)
 - inject remote scripts, use `eval`, or use `unsafe-inline`
 - run on any domain other than `https://claude.ai/*`
+- store or transmit your api key anywhere besides `chrome.storage.local` and the anthropic api call
 
 ## reporting a vulnerability
 
@@ -41,7 +43,7 @@ extension bundles are not yet signed. install only from this repo or from the ch
 before loading the unpacked extension, you can verify the manifest with:
 
 ```bash
-cat manifest.json | grep -E '"permissions"|"host_permissions"|"content_security_policy"'
+cat manifest.json | grep -E '"permissions"|"host_permissions"|"optional_host_permissions"|"content_security_policy"'
 ```
 
 expected output should match exactly the values in `main`.

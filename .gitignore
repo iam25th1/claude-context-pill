@@ -33,3 +33,6 @@ node_modules/
 # !package-lock.json
 # !yarn.lock
 # !pnpm-lock.yaml
+
+# do NOT ignore the vendored tokenizer bundle (runtime needs it)
+!vendor/tokenizer.bundle.js

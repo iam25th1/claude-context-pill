@@ -7,9 +7,9 @@
 a tiny chrome extension that pins an estimated token-usage counter to the claude.ai composer.
 
 [![license: mit](https://img.shields.io/badge/license-MIT-6ee7b7.svg?style=flat-square)](LICENSE)
-[![version](https://img.shields.io/badge/version-1.0.0-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.1.0-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
 [![manifest v3](https://img.shields.io/badge/manifest-v3-fbbf24.svg?style=flat-square)](manifest.json)
-[![zero deps](https://img.shields.io/badge/runtime%20deps-0-6ee7b7.svg?style=flat-square)](#zero-dependencies)
+[![tokenizer](https://img.shields.io/badge/tokenizer-js--tiktoken-6ee7b7.svg?style=flat-square)](#how-the-estimate-works)
 
 </div>
 
@@ -52,44 +52,89 @@ coming soon.
 
 ## how the estimate works
 
-| component                              | counted    |
-|----------------------------------------|-----------:|
-| visible user + assistant messages      | yes (~80%) |
-| code blocks (denser ratio)             | yes        |
-| system prompt                          | offset     |
-| user memories                          | offset     |
-| skills + tool definitions              | offset     |
-| hidden tool result payloads            | no         |
+the pill ships a vendored copy of [`js-tiktoken`](https://github.com/dqbd/tiktoken)
+with the cl100k_base BPE vocab. visible message text is tokenized with the real
+BPE algorithm, not a character heuristic, so the visible count is around 95%
+accurate against claude's actual tokenization.
 
-the `~` prefix in the display is deliberate. heuristic accuracy is around
-80% on the visible portion, and the hidden portion uses a configurable
-overhead offset (default `40,000` tokens). tune it in the popup based on
-your typical setup. chats heavy with tool use should bump it higher.
+the hidden portion (system prompt, skills, memory, tool definitions) is not
+observable, so the pill estimates it via feature detection:
+
+| feature                       | overhead contribution    |
+|-------------------------------|--------------------------|
+| baseline (vanilla chat)       | ~18,000                  |
+| project mode                  | +22,000                  |
+| each attached file            | +4,500                   |
+| each web search performed     | +6,500                   |
+| each artifact                 | +3,000                   |
+| each visible thinking block   | +1,500                   |
+| user memory active (manual)   | +12,000                  |
+
+defaults are conservative starting points. the calibration mode (below)
+refines the visible-count accuracy against the real anthropic endpoint.
+
+## optional calibration mode
+
+opt-in. uses your anthropic api key to validate the local tokenizer against
+the official `/v1/messages/count_tokens` endpoint.
+
+1. open the popup, switch to the `calibration` tab
+2. paste your anthropic api key
+3. toggle `calibration enabled` (grants permission for `api.anthropic.com` only)
+4. save
+
+every Nth conversation change (default 10) the extension sends the visible
+text to anthropic's count endpoint. the ratio between the official count
+and the local estimate becomes a multiplicative correction factor, applied
+to all future estimates. ratio is clamped to `[0.5, 2.0]` so a bad
+response cannot poison the estimator.
+
+the api key is stored only in `chrome.storage.local`. it is never logged
+and never sent anywhere besides `api.anthropic.com`. the optional host
+permission is dropped automatically if you toggle calibration off.
 
 ## features
 
 - floating glass pill, pinned bottom-right of the composer
 - 3-tier color status with subtle pulse animation
+- real BPE tokenization (no character heuristic)
+- smart per-feature overhead detection
 - click pill to toggle compact (`~612k / 1M`) and raw (`612,348 / 1,000,000`) views
-- settings popup with overhead offset and global enable toggle
+- settings popup with main + calibration tabs
+- opt-in api calibration with rolling correction factor
 - SPA route-change aware (switches conversations cleanly)
 - mutation observer with debounced re-render, low overhead
 - respects `prefers-reduced-motion`
 
-## zero dependencies
+## runtime dependencies
 
-the extension ships zero runtime dependencies. no bundler, no transpiler.
-everything is plain js, html, and css that chrome loads directly.
+zero. the vendored `js-tiktoken` bundle in `vendor/tokenizer.bundle.js` is
+the only third-party code that ships in the extension. no remote scripts,
+no remote fonts, no CDNs at runtime.
 
-the only optional dev dep is `web-ext` for the lint job in ci.
+## build (only needed if editing the tokenizer)
+
+the extension loads `vendor/tokenizer.bundle.js` directly, so no build step
+is required to run or develop the rest of the extension. if you want to
+rebuild the tokenizer bundle from source:
+
+```bash
+npm ci --ignore-scripts
+npm run bundle:tokenizer
+```
+
+this produces a fresh `vendor/tokenizer.bundle.js` from the pinned
+`js-tiktoken` version in `package.json`.
 
 ## security
 
 - manifest v3, host scoped to `https://claude.ai/*` only
+- `optional_host_permissions` for `https://api.anthropic.com/*`, requested only when calibration is enabled and dropped when it is disabled
 - permissions limited to `storage`
-- no remote scripts, no `eval`, csp-locked extension pages (`script-src 'self'`)
-- message content is read from the DOM but never stored, never transmitted
-- only three settings persist (`enabled`, `overhead`, `showRaw`)
+- no remote scripts, no `eval`, csp-locked extension pages (`script-src 'self'`, `connect-src https://api.anthropic.com`)
+- message content is read from the DOM but never stored or transmitted (unless you opt into calibration, in which case it is sent only to the official anthropic endpoint)
+- api key, when supplied, is stored only in `chrome.storage.local`
+- calibration correction factor is mathematically clamped so a malformed remote response cannot poison the estimator
 
 see [SECURITY.md](SECURITY.md) for the full policy and how to report issues.
 
@@ -104,10 +149,9 @@ PRs welcome for selector fixes, tokenizer improvements, ui polish. see
 
 ## roadmap
 
-- `v1.1` real tokenizer via vendored `js-tiktoken` cl100k encoding
-- `v1.2` optional anthropic `count_tokens` api integration (user supplies key)
-- `v1.3` shareable usage card export
-- `v1.4` learned overhead detection per conversation
+- `v1.2` shareable usage card export
+- `v1.3` per-conversation profile-based overhead history (long-term learning)
+- `v1.4` toolbar badge with live count
 
 full history in [CHANGELOG.md](CHANGELOG.md).
 

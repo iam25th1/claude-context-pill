@@ -9,37 +9,58 @@ this extension does not collect, store, transmit, or sell any user data.
 ## what data is accessed
 
 when active on `https://claude.ai/*`, the extension reads visible message
-text from the DOM in order to compute a token-count estimate. this read is
-ephemeral and used only to produce a number rendered locally in the pill.
+text from the DOM in order to compute a token-count estimate locally
+(using a vendored `js-tiktoken` tokenizer). this read is ephemeral.
+
+if you **opt in** to calibration mode, visible conversation text is also
+sent to `https://api.anthropic.com/v1/messages/count_tokens` using your
+own anthropic api key, in order to compute a correction factor for the
+local tokenizer. no other external service is ever contacted.
 
 ## what data is stored
 
-three settings persist in `chrome.storage.local`, scoped to your browser
+settings persist in `chrome.storage.local`, scoped to your browser
 profile:
 
-| key       | type    | purpose                                    |
-|-----------|---------|--------------------------------------------|
-| enabled   | boolean | whether the pill is shown                  |
-| overhead  | number  | tokens added to the visible count          |
-| showRaw   | boolean | compact vs raw display preference          |
+| key                       | type    | purpose                                    |
+|---------------------------|---------|--------------------------------------------|
+| enabled                   | boolean | whether the pill is shown                  |
+| overheadMode              | string  | `auto` or `manual`                         |
+| manualOverhead            | number  | override value if mode is `manual`         |
+| memoryActive              | boolean | whether to add user-memory overhead        |
+| showRaw                   | boolean | compact vs raw display preference          |
+| calibration.enabled       | boolean | whether calibration mode is on             |
+| calibration.apiKey        | string  | your anthropic api key (only if you set it)|
+| calibration.intervalMessages | number | how often to calibrate                  |
+| calibration state         | object  | rolling correction factor and sample count |
 
 no message content, no conversation ids, no user identifiers, no
 analytics, no telemetry are stored.
 
 ## what data is transmitted
 
-nothing. the extension makes zero network requests. there is no backend.
+- by default: nothing
+- with calibration enabled: visible conversation text is sent to
+  `https://api.anthropic.com/v1/messages/count_tokens` using your api
+  key, on the schedule you configure. this is the only outbound network
+  call the extension ever makes.
 
 ## third parties
 
-none. the extension does not load remote scripts, does not embed
-third-party trackers, and does not communicate with any external service.
+if calibration mode is enabled by you, anthropic receives the visible
+conversation text via the `count_tokens` endpoint, governed by anthropic's
+own privacy policy and the terms tied to your api key.
+
+no other third parties are involved. no trackers, no analytics, no CDNs.
 
 ## permissions explained
 
-- `storage`: required to persist the three settings above
+- `storage`: required to persist settings and calibration state
 - host permission for `https://claude.ai/*`: required so the content
   script can read the conversation DOM and mount the pill
+- `optional_host_permissions` for `https://api.anthropic.com/*`:
+  requested **only** when you enable calibration mode, and dropped
+  automatically when you disable it
 
 no other permissions are requested.
 

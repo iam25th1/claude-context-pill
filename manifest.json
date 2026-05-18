@@ -1,15 +1,21 @@
 {
   "manifest_version": 3,
   "name": "Claude Context Pill",
-  "version": "1.0.0",
-  "description": "Estimated token-usage tracker pinned to the claude.ai composer. Directional estimate, runs entirely client-side.",
+  "version": "1.1.0",
+  "description": "Token-usage tracker pinned to the claude.ai composer. Real BPE tokenizer with optional API calibration. Runs entirely client-side unless calibration is enabled.",
   "author": "25TH (@25thprmr)",
   "permissions": ["storage"],
+  "optional_host_permissions": ["https://api.anthropic.com/*"],
   "host_permissions": ["https://claude.ai/*"],
   "content_scripts": [
     {
       "matches": ["https://claude.ai/*"],
-      "js": ["content.js"],
+      "js": [
+        "vendor/tokenizer.bundle.js",
+        "overhead-detector.js",
+        "calibrator.js",
+        "content.js"
+      ],
       "css": ["pill.css"],
       "run_at": "document_idle",
       "all_frames": false
@@ -25,6 +31,6 @@
     "128": "icons/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.anthropic.com"
   }
 }

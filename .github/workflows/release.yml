@@ -37,7 +37,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: lint extension
-        run: npx web-ext lint --source-dir=. --self-hosted
+        run: npm run lint
 
       - name: package zip
         run: npm run package
