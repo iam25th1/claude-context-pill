@@ -1,6 +1,6 @@
 {
   "name": "claude-context-pill",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Token-usage tracker pinned to the claude.ai composer. Real BPE tokenizer with optional API calibration.",
   "private": true,
   "homepage": "https://github.com/iam25th1/claude-context-pill",

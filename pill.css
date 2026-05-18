@@ -1,10 +1,12 @@
 /* Claude Context Pill - styles scoped via #ccp- prefix.
-   Pinned to bottom-right of viewport above claude.ai composer.
+   Position is computed in content.js to anchor above the composer's
+   left edge. CSS sets only the base appearance.
    Uses CSS vars for theme; respects prefers-reduced-motion. */
 
 #ccp-pill {
   position: fixed;
-  right: 18px;
+  /* left and bottom are set inline by content.js based on composer rect */
+  left: 20px;
   bottom: 92px;
   z-index: 2147483600;
   display: inline-flex;
@@ -101,7 +103,7 @@
   #ccp-pill { transition: none; }
 }
 
-/* Hide on very narrow viewports to avoid overlapping mobile composers */
+/* Mobile: smaller padding and font, position still computed in JS */
 @media (max-width: 480px) {
-  #ccp-pill { right: 10px; bottom: 78px; font-size: 10.5px; padding: 5px 9px; }
+  #ccp-pill { font-size: 10.5px; padding: 5px 9px; }
 }

@@ -26,6 +26,20 @@
     'div[class*="message-content"]'
   ];
 
+  // Composer container selectors, in priority order. We use the outer
+  // box (the rounded container with input + buttons), not just the
+  // contenteditable inside it, so the pill aligns to the visual edge.
+  const COMPOSER_BOX_SELECTORS = [
+    'fieldset:has(div[contenteditable="true"])',
+    'div[class*="composer"]:has(div[contenteditable="true"])',
+    'form:has(div[contenteditable="true"])'
+  ];
+  const COMPOSER_INPUT_SELECTORS = [
+    'div[contenteditable="true"].ProseMirror',
+    'div[contenteditable="true"]',
+    'div[role="textbox"]'
+  ];
+
   // -------- settings (migrated from v1.0 shape) --------
 
   const DEFAULT_SETTINGS = {
@@ -48,6 +62,8 @@
   let lastPath = location.pathname;
   let debounceTimer = null;
   let lastCalibrationAt = 0;
+  let composerObserver = null;
+  let watchedComposer = null;
   let messagesSinceCalibration = 0;
   let lastVisibleText = '';
 
@@ -150,6 +166,63 @@
     return pillEl;
   }
 
+  // -------- composer-relative positioning --------
+
+  function findComposerBox() {
+    // Try outer box selectors first
+    for (const sel of COMPOSER_BOX_SELECTORS) {
+      let el;
+      try { el = document.querySelector(sel); } catch { continue; }
+      if (el && el.getBoundingClientRect().width > 100) return el;
+    }
+    // Fallback: walk up from the contenteditable to find a stable box
+    for (const sel of COMPOSER_INPUT_SELECTORS) {
+      let input;
+      try { input = document.querySelector(sel); } catch { continue; }
+      if (!input) continue;
+      // Walk up until we hit something that looks like the composer container
+      let node = input;
+      for (let i = 0; i < 6 && node && node !== document.body; i++) {
+        const r = node.getBoundingClientRect();
+        if (r.width > 200 && r.height > 30) return node;
+        node = node.parentElement;
+      }
+      return input;
+    }
+    return null;
+  }
+
+  function positionPill() {
+    if (!pillEl) return;
+    const box = findComposerBox();
+    if (!box) {
+      // Fallback: bottom-left, away from corner
+      pillEl.style.left = '20px';
+      pillEl.style.bottom = '96px';
+      return;
+    }
+    const rect = box.getBoundingClientRect();
+    const GAP_ABOVE = 8;   // px gap between pill bottom and composer top
+    const PILL_HEIGHT_GUESS = 30;
+    const bottom = Math.max(8, window.innerHeight - rect.top + GAP_ABOVE);
+    const left = Math.max(8, rect.left);
+    pillEl.style.left = `${Math.round(left)}px`;
+    pillEl.style.bottom = `${Math.round(bottom)}px`;
+    // If the pill would sit off-screen above, drop it inside the composer top instead
+    if (rect.top - GAP_ABOVE - PILL_HEIGHT_GUESS < 8) {
+      pillEl.style.bottom = `${Math.round(window.innerHeight - rect.top - PILL_HEIGHT_GUESS - GAP_ABOVE)}px`;
+    }
+    // Track this composer for size changes if it changed
+    if (box !== watchedComposer) {
+      watchedComposer = box;
+      if (composerObserver) composerObserver.disconnect();
+      try {
+        composerObserver = new ResizeObserver(() => positionPill());
+        composerObserver.observe(box);
+      } catch { /* ResizeObserver unsupported, fall through to scroll/resize hooks */ }
+    }
+  }
+
   function fmtTokens(n) {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(n >= 100_000 ? 0 : 1) + 'k';
@@ -169,6 +242,7 @@
     }
     const pill = ensurePill();
     pill.style.display = '';
+    positionPill();
 
     const text = gatherConversationText();
     const rawVisible = countTokens(text);
@@ -330,12 +404,24 @@
   async function init() {
     await loadSettings();
     ensurePill();
+    positionPill();
     render(true); // immediate render with fallback tokenizer
     await whenTokenizerReady();
     render(true); // re-render once real tokenizer is online
     startObserver();
     watchRouteChanges();
     setInterval(() => render(false), 5000);
+
+    // Reposition on viewport changes. Debounce so rapid resizes don't thrash.
+    let repositionTimer = null;
+    const debouncedReposition = () => {
+      if (repositionTimer) clearTimeout(repositionTimer);
+      repositionTimer = setTimeout(() => positionPill(), 60);
+    };
+    window.addEventListener('resize', debouncedReposition, { passive: true });
+    // Some layouts shift on sidebar toggle without a resize event;
+    // a low-rate poll catches edge cases for a tiny cost.
+    setInterval(positionPill, 1500);
   }
 
   if (document.readyState === 'loading') {

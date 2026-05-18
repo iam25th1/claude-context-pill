@@ -13,6 +13,14 @@ project follows [semver](https://semver.org/spec/v2.0.0.html).
 - v1.3 per-conversation profile-based overhead history (long-term learning)
 - v1.4 toolbar badge with live count
 
+## [1.1.1] - 2026-05-18
+
+### changed
+
+- pill is now anchored directly above the composer's left edge rather than the bottom-right viewport corner. follows the composer through sidebar toggles, window resizes, and route changes.
+- removes the fixed `right`/`bottom` viewport offsets in `pill.css` in favor of JS-computed `left`/`bottom` from the composer's bounding rect.
+- adds a `ResizeObserver` on the composer plus a debounced window-resize listener and a low-rate position poll for edge cases like sidebar toggles that do not fire a resize event.
+
 ## [1.1.0] - 2026-05-18
 
 ### added
@@ -59,6 +67,7 @@ project follows [semver](https://semver.org/spec/v2.0.0.html).
 - manifest v3 with minimal permissions (`storage` + claude.ai host)
 - csp-locked extension pages, no remote scripts, no `eval`
 
-[unreleased]: https://github.com/iam25th1/claude-context-pill/compare/v1.1.0...HEAD
+[unreleased]: https://github.com/iam25th1/claude-context-pill/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.1.1
 [1.1.0]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.1.0
 [1.0.0]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.0.0

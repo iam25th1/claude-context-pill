@@ -7,7 +7,7 @@
 a tiny chrome extension that pins an estimated token-usage counter to the claude.ai composer.
 
 [![license: mit](https://img.shields.io/badge/license-MIT-6ee7b7.svg?style=flat-square)](LICENSE)
-[![version](https://img.shields.io/badge/version-1.1.0-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.1.1-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
 [![manifest v3](https://img.shields.io/badge/manifest-v3-fbbf24.svg?style=flat-square)](manifest.json)
 [![tokenizer](https://img.shields.io/badge/tokenizer-js--tiktoken-6ee7b7.svg?style=flat-square)](#how-the-estimate-works)
 
