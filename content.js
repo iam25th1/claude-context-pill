@@ -48,12 +48,21 @@
     overheadMode: 'auto',     // 'auto' | 'manual'
     manualOverhead: 40_000,
     memoryActive: false,
+    position: {
+      anchor: 'composer-top', // 'composer-top'|'composer-bottom'|'composer-left'|'composer-right'|'screen-top'|'screen-bottom'|'screen-left'|'screen-right'
+      offset: 0                // 0-1 along the perpendicular axis of the anchor edge
+    },
     calibration: {
       enabled: false,
       apiKey: null,
       intervalMessages: 10
     }
   };
+
+  // Snap threshold: if you release within this many pixels of an edge,
+  // it wins decisively. otherwise the closest edge still wins, no free float.
+  const SNAP_PADDING = 8;       // px gap between pill and the surface it sticks to
+  const DRAG_THRESHOLD = 4;     // px movement before mousedown counts as a drag
 
   let settings = structuredClone(DEFAULT_SETTINGS);
   let pillEl = null;
@@ -66,6 +75,7 @@
   let watchedComposer = null;
   let messagesSinceCalibration = 0;
   let lastVisibleText = '';
+  let dragState = null; // { startX, startY, startLeft, startTop, didDrag, pointerId }
 
   // -------- token estimation --------
 
@@ -156,31 +166,89 @@
       <span class="ccp-count">~0 / 1M</span>
       <span class="ccp-pct">0%</span>
     `;
-    pillEl.title = 'Click to toggle raw / compact view';
-    pillEl.addEventListener('click', () => {
-      settings.showRaw = !settings.showRaw;
-      saveSettings();
-      render(true);
-    });
+    pillEl.title = 'click to toggle raw / compact view. drag to reposition.';
+    attachInteractions(pillEl);
     document.body.appendChild(pillEl);
     return pillEl;
   }
 
-  // -------- composer-relative positioning --------
+  // -------- click + drag interaction --------
+
+  function attachInteractions(pill) {
+    pill.addEventListener('pointerdown', onPointerDown);
+  }
+
+  function onPointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return; // left-click / touch only
+    const rect = pillEl.getBoundingClientRect();
+    dragState = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startLeft: rect.left,
+      startTop: rect.top,
+      didDrag: false,
+      pointerId: e.pointerId
+    };
+    pillEl.setPointerCapture(e.pointerId);
+    pillEl.classList.add('ccp-dragging');
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp, { once: true });
+    window.addEventListener('pointercancel', onPointerUp, { once: true });
+    e.preventDefault();
+  }
+
+  function onPointerMove(e) {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    if (!dragState.didDrag && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+      dragState.didDrag = true;
+    }
+    if (!dragState.didDrag) return;
+    const pw = pillEl.offsetWidth;
+    const ph = pillEl.offsetHeight;
+    const left = clamp(dragState.startLeft + dx, 0, window.innerWidth - pw);
+    const top = clamp(dragState.startTop + dy, 0, window.innerHeight - ph);
+    pillEl.style.left = `${left}px`;
+    pillEl.style.top = `${top}px`;
+    pillEl.style.right = 'auto';
+    pillEl.style.bottom = 'auto';
+  }
+
+  function onPointerUp(e) {
+    window.removeEventListener('pointermove', onPointerMove);
+    pillEl.classList.remove('ccp-dragging');
+    try { pillEl.releasePointerCapture(dragState?.pointerId); } catch { /* noop */ }
+    if (!dragState) return;
+    if (dragState.didDrag) {
+      snapToNearestEdge();
+      saveSettings();
+      // suppress the synthetic click that follows a touch drag
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      pillEl.addEventListener('click', swallow, { capture: true, once: true });
+    } else {
+      // clean click: toggle raw view
+      settings.showRaw = !settings.showRaw;
+      saveSettings();
+      render(true);
+    }
+    dragState = null;
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // -------- composer detection --------
 
   function findComposerBox() {
-    // Try outer box selectors first
     for (const sel of COMPOSER_BOX_SELECTORS) {
       let el;
       try { el = document.querySelector(sel); } catch { continue; }
       if (el && el.getBoundingClientRect().width > 100) return el;
     }
-    // Fallback: walk up from the contenteditable to find a stable box
     for (const sel of COMPOSER_INPUT_SELECTORS) {
       let input;
       try { input = document.querySelector(sel); } catch { continue; }
       if (!input) continue;
-      // Walk up until we hit something that looks like the composer container
       let node = input;
       for (let i = 0; i < 6 && node && node !== document.body; i++) {
         const r = node.getBoundingClientRect();
@@ -192,34 +260,135 @@
     return null;
   }
 
-  function positionPill() {
-    if (!pillEl) return;
+  // -------- anchor-based positioning --------
+
+  function snapToNearestEdge() {
+    const pillRect = pillEl.getBoundingClientRect();
+    const cx = pillRect.left + pillRect.width / 2;
+    const cy = pillRect.top + pillRect.height / 2;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const candidates = [
+      { name: 'screen-top',    dist: cy },
+      { name: 'screen-bottom', dist: vh - cy },
+      { name: 'screen-left',   dist: cx },
+      { name: 'screen-right',  dist: vw - cx }
+    ];
+
     const box = findComposerBox();
-    if (!box) {
-      // Fallback: bottom-left, away from corner
-      pillEl.style.left = '20px';
-      pillEl.style.bottom = '96px';
-      return;
+    if (box) {
+      const r = box.getBoundingClientRect();
+      candidates.push(
+        { name: 'composer-top',    dist: Math.abs(cy - r.top),    rect: r },
+        { name: 'composer-bottom', dist: Math.abs(cy - r.bottom), rect: r },
+        { name: 'composer-left',   dist: Math.abs(cx - r.left),   rect: r },
+        { name: 'composer-right',  dist: Math.abs(cx - r.right),  rect: r }
+      );
     }
-    const rect = box.getBoundingClientRect();
-    const GAP_ABOVE = 8;   // px gap between pill bottom and composer top
-    const PILL_HEIGHT_GUESS = 30;
-    const bottom = Math.max(8, window.innerHeight - rect.top + GAP_ABOVE);
-    const left = Math.max(8, rect.left);
+
+    candidates.sort((a, b) => a.dist - b.dist);
+    const chosen = candidates[0];
+    const r = chosen.rect;
+    let offset = 0;
+    switch (chosen.name) {
+      case 'screen-top':
+      case 'screen-bottom':
+        offset = pillRect.left / Math.max(1, vw - pillRect.width);
+        break;
+      case 'screen-left':
+      case 'screen-right':
+        offset = pillRect.top / Math.max(1, vh - pillRect.height);
+        break;
+      case 'composer-top':
+      case 'composer-bottom':
+        offset = (pillRect.left - r.left) / Math.max(1, r.width - pillRect.width);
+        break;
+      case 'composer-left':
+      case 'composer-right':
+        offset = (pillRect.top - r.top) / Math.max(1, r.height - pillRect.height);
+        break;
+    }
+    settings.position = { anchor: chosen.name, offset: clamp(offset, 0, 1) };
+    positionPill(true);
+  }
+
+  function positionPill(animated = false) {
+    if (!pillEl) return;
+    const pw = pillEl.offsetWidth;
+    const ph = pillEl.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const anchor = settings.position?.anchor || 'composer-top';
+    const offset = clamp(settings.position?.offset ?? 0, 0, 1);
+    const box = findComposerBox();
+    const r = box ? box.getBoundingClientRect() : null;
+    const usesComposer = anchor.startsWith('composer-');
+
+    let left, top;
+    if (usesComposer && !r) {
+      // composer not found, gracefully fall through to a screen anchor
+      left = 16;
+      top = vh - ph - 96;
+    } else {
+      switch (anchor) {
+        case 'composer-top':
+          left = r.left + offset * Math.max(0, r.width - pw);
+          top = r.top - ph - SNAP_PADDING;
+          break;
+        case 'composer-bottom':
+          left = r.left + offset * Math.max(0, r.width - pw);
+          top = r.bottom + SNAP_PADDING;
+          break;
+        case 'composer-left':
+          left = r.left - pw - SNAP_PADDING;
+          top = r.top + offset * Math.max(0, r.height - ph);
+          break;
+        case 'composer-right':
+          left = r.right + SNAP_PADDING;
+          top = r.top + offset * Math.max(0, r.height - ph);
+          break;
+        case 'screen-top':
+          left = offset * Math.max(0, vw - pw);
+          top = SNAP_PADDING;
+          break;
+        case 'screen-bottom':
+          left = offset * Math.max(0, vw - pw);
+          top = vh - ph - SNAP_PADDING;
+          break;
+        case 'screen-left':
+          left = SNAP_PADDING;
+          top = offset * Math.max(0, vh - ph);
+          break;
+        case 'screen-right':
+          left = vw - pw - SNAP_PADDING;
+          top = offset * Math.max(0, vh - ph);
+          break;
+        default:
+          left = SNAP_PADDING;
+          top = vh - ph - 96;
+      }
+    }
+
+    left = clamp(left, SNAP_PADDING, Math.max(SNAP_PADDING, vw - pw - SNAP_PADDING));
+    top = clamp(top, SNAP_PADDING, Math.max(SNAP_PADDING, vh - ph - SNAP_PADDING));
+
+    if (animated) pillEl.classList.add('ccp-snapping');
     pillEl.style.left = `${Math.round(left)}px`;
-    pillEl.style.bottom = `${Math.round(bottom)}px`;
-    // If the pill would sit off-screen above, drop it inside the composer top instead
-    if (rect.top - GAP_ABOVE - PILL_HEIGHT_GUESS < 8) {
-      pillEl.style.bottom = `${Math.round(window.innerHeight - rect.top - PILL_HEIGHT_GUESS - GAP_ABOVE)}px`;
+    pillEl.style.top = `${Math.round(top)}px`;
+    pillEl.style.right = 'auto';
+    pillEl.style.bottom = 'auto';
+    if (animated) {
+      setTimeout(() => pillEl.classList.remove('ccp-snapping'), 260);
     }
-    // Track this composer for size changes if it changed
-    if (box !== watchedComposer) {
+
+    if (box && box !== watchedComposer) {
       watchedComposer = box;
       if (composerObserver) composerObserver.disconnect();
       try {
         composerObserver = new ResizeObserver(() => positionPill());
         composerObserver.observe(box);
-      } catch { /* ResizeObserver unsupported, fall through to scroll/resize hooks */ }
+      } catch { /* noop */ }
     }
   }
 
@@ -353,6 +522,7 @@
           settings = {
             ...DEFAULT_SETTINGS,
             ...stored,
+            position: { ...DEFAULT_SETTINGS.position, ...(stored.position || {}) },
             calibration: { ...DEFAULT_SETTINGS.calibration, ...(stored.calibration || {}) }
           };
           // persist migration
@@ -379,8 +549,10 @@
           settings = {
             ...DEFAULT_SETTINGS,
             ...next,
+            position: { ...DEFAULT_SETTINGS.position, ...(next.position || {}) },
             calibration: { ...DEFAULT_SETTINGS.calibration, ...(next.calibration || {}) }
           };
+          positionPill(true);
           render(true);
         }
       }

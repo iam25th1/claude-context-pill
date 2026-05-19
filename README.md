@@ -7,7 +7,7 @@
 a tiny chrome extension that pins an estimated token-usage counter to the claude.ai composer.
 
 [![license: mit](https://img.shields.io/badge/license-MIT-6ee7b7.svg?style=flat-square)](LICENSE)
-[![version](https://img.shields.io/badge/version-1.1.1-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.2.0-6ee7b7.svg?style=flat-square)](CHANGELOG.md)
 [![manifest v3](https://img.shields.io/badge/manifest-v3-fbbf24.svg?style=flat-square)](manifest.json)
 [![tokenizer](https://img.shields.io/badge/tokenizer-js--tiktoken-6ee7b7.svg?style=flat-square)](#how-the-estimate-works)
 
@@ -95,7 +95,9 @@ permission is dropped automatically if you toggle calibration off.
 
 ## features
 
-- floating glass pill, pinned bottom-right of the composer
+- floating glass pill with click + drag + magnetic snap
+- snaps to any of 8 edges on release: composer top/bottom/left/right and screen top/bottom/left/right
+- position persists across reloads and follows the composer through sidebar toggles, window resizes, and route changes
 - 3-tier color status with subtle pulse animation
 - real BPE tokenization (no character heuristic)
 - smart per-feature overhead detection
@@ -149,9 +151,9 @@ PRs welcome for selector fixes, tokenizer improvements, ui polish. see
 
 ## roadmap
 
-- `v1.2` shareable usage card export
-- `v1.3` per-conversation profile-based overhead history (long-term learning)
-- `v1.4` toolbar badge with live count
+- `v1.3` shareable usage card export
+- `v1.4` per-conversation profile-based overhead history (long-term learning)
+- `v1.5` toolbar badge with live count
 
 full history in [CHANGELOG.md](CHANGELOG.md).
 

@@ -9,9 +9,26 @@ project follows [semver](https://semver.org/spec/v2.0.0.html).
 
 ### planned
 
-- v1.2 shareable usage card export
-- v1.3 per-conversation profile-based overhead history (long-term learning)
-- v1.4 toolbar badge with live count
+- v1.3 shareable usage card export
+- v1.4 per-conversation profile-based overhead history (long-term learning)
+- v1.5 toolbar badge with live count
+
+## [1.2.0] - 2026-05-18
+
+### added
+
+- pill is draggable. click and hold, drag anywhere on screen, release to snap.
+- magnetic snap on release. eight snap targets: composer top, bottom, left, right and screen top, bottom, left, right.
+- snap chooses the closest edge by distance from the pill's center. no free-floating, so the pill always rests on a surface.
+- position persists in `settings.position` (`anchor` + `offset` along the edge) and survives reloads, sidebar toggles, and route changes.
+- new CSS classes `.ccp-dragging` (lifts the pill while held) and `.ccp-snapping` (240ms ease-out animation when snapping home).
+- distinguishes click from drag with a 4px threshold so quick clicks still toggle raw view.
+
+### changed
+
+- positioning is now anchor-based with a normalized 0-1 offset along the anchor edge, replacing the v1.1 hardcoded composer-top-left placement.
+- default placement remains composer-top, offset 0 (top-left of the composer), matching v1.1.1 visual default.
+- `touch-action: none` on the pill so mobile drags don't scroll the page.
 
 ## [1.1.1] - 2026-05-18
 
@@ -67,7 +84,8 @@ project follows [semver](https://semver.org/spec/v2.0.0.html).
 - manifest v3 with minimal permissions (`storage` + claude.ai host)
 - csp-locked extension pages, no remote scripts, no `eval`
 
-[unreleased]: https://github.com/iam25th1/claude-context-pill/compare/v1.1.1...HEAD
+[unreleased]: https://github.com/iam25th1/claude-context-pill/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.2.0
 [1.1.1]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.1.1
 [1.1.0]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.1.0
 [1.0.0]: https://github.com/iam25th1/claude-context-pill/releases/tag/v1.0.0

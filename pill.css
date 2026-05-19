@@ -1,11 +1,12 @@
 /* Claude Context Pill - styles scoped via #ccp- prefix.
-   Position is computed in content.js to anchor above the composer's
-   left edge. CSS sets only the base appearance.
+   Position is computed in content.js. Anchor edge is persisted in settings.
+   Pill is draggable and snaps to the nearest screen or composer edge.
    Uses CSS vars for theme; respects prefers-reduced-motion. */
 
 #ccp-pill {
   position: fixed;
-  /* left and bottom are set inline by content.js based on composer rect */
+  /* left and top are set inline by content.js based on the chosen anchor;
+     these defaults only paint for a few ms during init before JS takes over */
   left: 20px;
   bottom: 92px;
   z-index: 2147483600;
@@ -27,8 +28,9 @@
   line-height: 1;
   letter-spacing: 0.01em;
   color: rgba(232, 236, 244, 0.94);
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
+  touch-action: none;
   transition: transform 160ms ease, opacity 160ms ease, border-color 200ms ease;
   pointer-events: auto;
 }
@@ -36,6 +38,26 @@
 #ccp-pill:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+#ccp-pill.ccp-dragging {
+  cursor: grabbing;
+  transition: none;
+  transform: scale(1.04);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(110, 231, 183, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border-color: rgba(110, 231, 183, 0.35);
+  opacity: 0.96;
+}
+
+#ccp-pill.ccp-snapping {
+  transition:
+    left 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    top 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 160ms ease,
+    border-color 200ms ease;
 }
 
 #ccp-pill .ccp-dot {

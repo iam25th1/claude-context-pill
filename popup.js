@@ -10,6 +10,10 @@ const DEFAULTS = {
   overheadMode: 'auto',
   manualOverhead: 40_000,
   memoryActive: false,
+  position: {
+    anchor: 'composer-top',
+    offset: 0
+  },
   calibration: {
     enabled: false,
     apiKey: null,
@@ -142,7 +146,8 @@ $('save-main').addEventListener('click', async () => {
 $('reset-main').addEventListener('click', async () => {
   const reset = {
     ...DEFAULTS,
-    calibration: settings.calibration // keep calibration state on main reset
+    position: settings.position,         // preserve pill placement
+    calibration: settings.calibration    // keep calibration state on main reset
   };
   await set(SETTINGS_KEY, reset);
   settings = reset;
